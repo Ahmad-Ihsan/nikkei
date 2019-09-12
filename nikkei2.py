@@ -421,7 +421,7 @@ def main(url):
     
     conn.close()
     
-main('https://www.nikkei.com/paper/morning/?b=20190910&d=0')
+main('https://www.nikkei.com/paper/')
 
 
 
