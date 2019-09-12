@@ -67,8 +67,6 @@ row=dict()
 
 
 
-
-
 def doc2docx(basedir):
     os.chdir(basedir)
 
