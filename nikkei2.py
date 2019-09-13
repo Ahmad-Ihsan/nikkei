@@ -74,7 +74,7 @@ row=dict()
 def get_link(url):
     
     driver.get(url)
-    time.sleep(15)
+    time.sleep(10)
 
     username = driver.find_element_by_name("LA7010Form01:LA7010Email")
     username.clear()
@@ -157,7 +157,7 @@ def get_data(links):
         if links[i] != 'javascript:void(0)':
             driver.get(f'https://www.nikkei.com{links[i]}')
             html = driver.page_source
-            time.sleep(2)
+            time.sleep(1)
             sp = BeautifulSoup(html, 'lxml')
             data = sp.find('div', class_=re.compile("cmn-section cmn-indent"))
             
@@ -379,17 +379,20 @@ def main(url):
 #    print(links)
     get_data(links)
     
+
+    print('Insertnig to News, Media ....')
     for i in range(len(art_titles)):
         c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content, Raw, Category) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i]), art_raw[i], art_category_id[i]))
-        print(f'news{i}')
         c.execute("insert or ignore into media (News_ID, location, type) values (?,?,?)", (art_id[i], art_media[i], art_media_type[i]))
         conn.commit()
-        
+    print('Finish')
+
+    print('Insertnig to Dictionary ....')
     for i in range(len(word)):
         c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
-        
         conn.commit()
-    
+    print('Finish')
+
     a = c.execute('select word_id, japanese from dictionary')    
 
     name = []
@@ -398,6 +401,7 @@ def main(url):
         ids.append(i[0])   
         name.append(i[1])
     
+    print('Insertnig to Word_count ....')
     for key, value in row.items():
         a = key
         b = value
@@ -407,7 +411,9 @@ def main(url):
                     key = ids[i]
             c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
-            
+    print('Finish')
+
+
     b = c.execute('select word_id, sum(count) from word_count group by word_id')
     ids = []
     count = []
@@ -415,6 +421,7 @@ def main(url):
         ids.append(i[0])
         count.append(i[1])
         
+    print('Updating Count Total ....')
     for i in range(len(ids)):
         c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
         conn.commit()
