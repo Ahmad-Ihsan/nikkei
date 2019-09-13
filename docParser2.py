@@ -103,25 +103,18 @@ def docParser(dirs):
     for j in range(len(dirs)):
         doc = docx.Document(dirs[j])
     #TITLE
-        if doc.paragraphs[1].text != '':
-            title = doc.paragraphs[1].runs[0].text
-            print(title)
-            cleaner(title_cleaned, title)
-        else:
-            title = doc.paragraphs[0].text
-            cleaner(title_cleaned, title)
+        header = doc.paragraphs[0].text
+        start = header.find('刊')
+        header_len = len(header)
+        temp_title = header[start+1:header_len].split(' ')
+        title = temp_title[0]
+        cleaner(title_cleaned, title)
     #SUBTITLE
-        length = len(doc.paragraphs[1].runs)
-        temp = doc.paragraphs[1].runs[2:length-1]
-        s = []
-        for i in temp:
-            s.append(i.text)
-        subtitle = ''.join(s).strip('\n')
-        if subtitle:
-            cleaner(subtitle_cleaned, subtitle)
-        else:
+        try:
+            subtitle = temp_title[1]
+        except:
             subtitle = None
-            cleaner(subtitle_cleaned, str(subtitle))
+        cleaner(subtitle_cleaned, str(subtitle))
     #TEXT CONTENT    
         temp2 = []
         cleaned_temp = []
@@ -261,17 +254,21 @@ def main(baseDir):
     print(dirs)
     docParser(dirs)
     
-        
+    print('Insertnig to News, Media ....')
     for i in range(len(art_titles)):
         c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i])))
+        print(f'news{i+1}')
         c.execute("insert or ignore into media (News_ID, type) values (?,?)", (art_id[i], art_media_type))
         conn.commit()
-        
+    print('Finish')    
+
+    print('Insertnig to Dictionary ....')
     for i in range(len(japanese)):
         c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (japanese[i], furigana[i], word_type[i]))
         
         conn.commit()
-    
+    print('Finish')
+
     a = c.execute('select word_id, japanese from dictionary')    
 
     name = []
@@ -280,6 +277,8 @@ def main(baseDir):
         ids.append(i[0])   
         name.append(i[1])
     
+
+    print('Inserting into word_count ...')
     for key, value in row.items():
         a = key
         b = value
@@ -289,7 +288,9 @@ def main(baseDir):
                     key = ids[i]
             c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
-            
+    print('Finish')
+
+
     b = c.execute('select word_id, sum(count) from word_count group by word_id')
     ids = []
     count = []
@@ -297,12 +298,16 @@ def main(baseDir):
         ids.append(i[0])
         count.append(i[1])
         
+    print('Updating Count Total ....')
     for i in range(len(ids)):
         c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
         conn.commit()
-    
+    print('Finish')
     conn.close()
         
+    print('removing duplicates')    
+    for i in dirs:
+        os.remove(i)
         
         
 ######################################################################################################                        
