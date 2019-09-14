@@ -157,7 +157,7 @@ def get_data(links):
         if links[i] != 'javascript:void(0)':
             driver.get(f'https://www.nikkei.com{links[i]}')
             html = driver.page_source
-            time.sleep(1)
+            time.sleep(2)
             sp = BeautifulSoup(html, 'lxml')
             data = sp.find('div', class_=re.compile("cmn-section cmn-indent"))
             
@@ -427,8 +427,10 @@ def main(url):
         conn.commit()
     
     conn.close()
-    
-main('https://www.nikkei.com/paper/')
+
+
+if __name__ == '__main__':    
+    main('https://www.nikkei.com/paper/')
 
 
 
