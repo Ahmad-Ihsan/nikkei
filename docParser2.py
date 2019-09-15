@@ -16,12 +16,24 @@ import MeCab
 import calendar
 import subprocess
 import glob
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
+
+file_handler = logging.FileHandler('docParser.log')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
 
 conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
 c = conn.cursor()
 mecab = MeCab.Tagger()
 
-baseDir = '/home/ihsan/Nikkei/news/20130408朝刊' 
+baseDir = '/home/ihsan/Nikkei/news/20130408夕刊' 
 
 #News
 art_id = []
@@ -108,6 +120,7 @@ def docParser(dirs):
         header_len = len(header)
         temp_title = header[start+1:header_len].split(' ')
         title = temp_title[0]
+        print(title)
         cleaner(title_cleaned, title)
     #SUBTITLE
         try:
@@ -132,8 +145,8 @@ def docParser(dirs):
         getsu = header.find('月')
         nen = header.find('年')
         hi = header.find('日')
-        month = header[nen+1:getsu]
-        date = header[getsu+1:hi]
+        month = f'{header[nen+1:getsu]:0>2}'
+        date = f'{header[getsu+1:hi]:0>2}'
         date_full = f'{year}-{month}-{date}'
         day_id = calendar.weekday(int(year), int(month), int(date))
         if day_id!=6:
@@ -174,6 +187,8 @@ def docParser(dirs):
         if day_id:
             art_day.append(day_id)
         
+
+        logger.info(f'Article fetched: title = {title}, date = {date_full}, version = {version}')
 ###########################################################################################################
     
     for i in range(len(content_cleaned)):
@@ -251,23 +266,24 @@ def docParser(dirs):
 def main(baseDir):
     doc2docx(baseDir)
     dirs = get_dir(baseDir)
-    print(dirs)
     docParser(dirs)
     
     print('Insertnig to News, Media ....')
+    logger.info('Insertnig to News, Media ....')
     for i in range(len(art_titles)):
         c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i])))
-        print(f'news{i+1}')
         c.execute("insert or ignore into media (News_ID, type) values (?,?)", (art_id[i], art_media_type))
         conn.commit()
-    print('Finish')    
+    logger.info('Finished Insertnig to News, Media ....')
+    print('Finished Insertnig to News, Media')    
 
     print('Insertnig to Dictionary ....')
+    logger.info('Insertnig to Dictionary ....')
     for i in range(len(japanese)):
         c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (japanese[i], furigana[i], word_type[i]))
-        
         conn.commit()
-    print('Finish')
+    print('Finished Insertnig to Dictionary')
+    logger.info('Finished Insertnig to Dictionary')
 
     a = c.execute('select word_id, japanese from dictionary')    
 
@@ -279,6 +295,7 @@ def main(baseDir):
     
 
     print('Inserting into word_count ...')
+    logger.info('Inserting into word_count ...')
     for key, value in row.items():
         a = key
         b = value
@@ -288,7 +305,8 @@ def main(baseDir):
                     key = ids[i]
             c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
-    print('Finish')
+    print('Finished Inserting into word_count')
+    logger.info('Finished Inserting into word_count')
 
 
     b = c.execute('select word_id, sum(count) from word_count group by word_id')
@@ -299,10 +317,12 @@ def main(baseDir):
         count.append(i[1])
         
     print('Updating Count Total ....')
+    logger.info('Updating Count Total ....')
     for i in range(len(ids)):
         c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
         conn.commit()
-    print('Finish')
+    print('Finished Updating Count Total')
+    logger.info('Finished Updating Count Total')
     conn.close()
         
     print('removing duplicates')    

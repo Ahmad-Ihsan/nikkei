@@ -12,8 +12,19 @@ import sqlite3
 import MeCab
 import codecs
 import os
+import logging
 
-rootdir = '/home/ihsan/Nikkei/news/20190613朝刊'
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
+
+file_handler = logging.FileHandler('htmlParser.log')
+file_handler.setFormatter(formatter)
+
+logger.addHandler(file_handler)
+
+rootdir = '/home/ihsan/Nikkei/news/20190613夕刊'
 
 conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
 c = conn.cursor()
@@ -249,6 +260,7 @@ def get_data(dirs):
         art_media.append(location)
         art_media_type.append(tipe)
         
+        logger.info(f'Article fetched: title = {title}, date = {date_full}, version = {version}')
 
 ###########################################################################################################
 
@@ -328,17 +340,21 @@ def main(rootdir):
     get_data(dirs)
     
     print('Insertnig to News, Media ....')
+    logger.info('Insertnig to News, Media ....')
     for i in range(len(art_titles)):
         c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content, Raw, Category) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i]), art_raw[i], art_category_id[i]))
         c.execute("insert or ignore into media (News_ID, location, type) values (?,?,?)", (art_id[i], art_media[i], art_media_type[i]))
         conn.commit()
-    print('Finish')
+    logger.info('Finished inserting news, media')
+    print('Finished inserting news, media')
 
     print('Insertnig to Dictionary ....')
+    logger.info('Insertnig to Dictionary ....')
     for i in range(len(word)):
         c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
         conn.commit()
-    print('Finish')
+    logger.info('Finished inserting dictionary')
+    print('Finished inserting dictionary')
     
     a = c.execute('select word_id, japanese from dictionary')    
 
@@ -349,6 +365,7 @@ def main(rootdir):
         name.append(i[1])
     
     print('Insertnig to word_count ....')
+    logger.info('Insertnig to word_count ....')
     for key, value in dic.items():
         a = key
         b = value
@@ -358,7 +375,8 @@ def main(rootdir):
                     key = ids[i]
             c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
-    print('Finish')
+    print('Finished Insertnig to word_count')
+    logger.info('Finished Insertnig to word_count')
 
     b = c.execute('select word_id, sum(count) from word_count group by word_id')
     ids = []
@@ -367,12 +385,16 @@ def main(rootdir):
         ids.append(i[0])
         count.append(i[1])
 
-    print('Updating Count Total ....')    
+    print('Updating Count Total ....')
+    logger.info('Updating Count Total ....')    
     for i in range(len(ids)):
         c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
         conn.commit()
-
+        
     conn.close()
+    logger.info(f'Finished Insertnig Artikel {art_date_full[0]}, version {art_ver[0]}')
 
 
-main(rootdir)
+
+if __name__ == '__main__':    
+    main(rootdir)
