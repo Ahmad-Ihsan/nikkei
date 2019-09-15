@@ -18,22 +18,26 @@ import subprocess
 import glob
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('doc')
 logger.setLevel(logging.INFO)
-
 formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
-
 file_handler = logging.FileHandler('docParser.log')
 file_handler.setFormatter(formatter)
-
 logger.addHandler(file_handler)
+
+main_logger = logging.getLogger('main')
+main_logger.setLevel(logging.INFO)
+main_logger_format = logging.Formatter('%(message)s:%(asctime)s')
+main_logger_handler = logging.FileHandler('MainLog.log')
+main_logger_handler.setFormatter(main_logger_format)
+main_logger.addHandler(main_logger_handler)
 
 
 conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
 c = conn.cursor()
 mecab = MeCab.Tagger()
 
-baseDir = '/home/ihsan/Nikkei/news/20130408夕刊' 
+baseDir = '/home/ihsan/Nikkei/news/20130408朝刊' 
 
 #News
 art_id = []
@@ -188,7 +192,7 @@ def docParser(dirs):
             art_day.append(day_id)
         
 
-        logger.info(f'Article fetched: title = {title}, date = {date_full}, version = {version}')
+        logger.info(f'Article fetched: date = {date_full}, version = {version}, id = {ids}')
 ###########################################################################################################
     
     for i in range(len(content_cleaned)):
@@ -324,7 +328,9 @@ def main(baseDir):
     print('Finished Updating Count Total')
     logger.info('Finished Updating Count Total')
     conn.close()
-        
+    
+    main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
+
     print('removing duplicates')    
     for i in dirs:
         os.remove(i)

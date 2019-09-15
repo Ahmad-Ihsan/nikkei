@@ -14,17 +14,21 @@ import codecs
 import os
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('html')
 logger.setLevel(logging.INFO)
-
 formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
-
 file_handler = logging.FileHandler('htmlParser.log')
 file_handler.setFormatter(formatter)
-
 logger.addHandler(file_handler)
 
-rootdir = '/home/ihsan/Nikkei/news/20190613夕刊'
+main_logger = logging.getLogger('main')
+main_logger.setLevel(logging.INFO)
+main_logger_format = logging.Formatter('%(message)s:%(asctime)s')
+main_logger_handler = logging.FileHandler('MainLog.log')
+main_logger_handler.setFormatter(main_logger_format)
+main_logger.addHandler(main_logger_handler)
+
+rootdir = '/home/ihsan/Nikkei/news/20190613朝刊'
 
 conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
 c = conn.cursor()
@@ -260,7 +264,7 @@ def get_data(dirs):
         art_media.append(location)
         art_media_type.append(tipe)
         
-        logger.info(f'Article fetched: title = {title}, date = {date_full}, version = {version}')
+        logger.info(f'Article fetched: date = {date_full}, version = {version}, id = {ids}')
 
 ###########################################################################################################
 
@@ -393,6 +397,7 @@ def main(rootdir):
         
     conn.close()
     logger.info(f'Finished Insertnig Artikel {art_date_full[0]}, version {art_ver[0]}')
+    main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
 
 
 
