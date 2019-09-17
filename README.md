@@ -10,4 +10,5 @@ selenium 3.14,
 textract,
 beautifulsoup,
 MeCab
+python-docx
 
