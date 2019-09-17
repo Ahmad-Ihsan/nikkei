@@ -9,6 +9,6 @@ geckodriver 0.25.0 -> download -> extract -> buat executable -> masukkan ke usr/
 selenium 3.14,
 textract,
 beautifulsoup,
-MeCab
+MeCab,
 python-docx
 
