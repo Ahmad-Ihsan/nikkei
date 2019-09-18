@@ -14,6 +14,8 @@ import codecs
 import os
 import logging
 
+from sql.connect import DBConnection
+
 logger = logging.getLogger('html')
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
@@ -28,11 +30,13 @@ main_logger_handler = logging.FileHandler('MainLog.log')
 main_logger_handler.setFormatter(main_logger_format)
 main_logger.addHandler(main_logger_handler)
 
-rootdir = '/home/ihsan/Nikkei/news/20190613朝刊'
-
-conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
+db = DBConnection()
+conn = db.connection()
 c = conn.cursor()
 mecab = MeCab.Tagger()
+
+#baseDir = '/home/ihsan/Nikkei/news/20130408朝刊' 
+baseDir = os.path.abspath(os.path.dirname(__file__))
 
 
 #News
@@ -77,16 +81,23 @@ furigana = []
 word_type = []
 dic=dict()
 
-            
+directory = []
 
-def get_dirs(rootdir):
-    directory = []
-    for subdir, dirs, files in os.walk(rootdir):
+def get_dirs(baseDir):
+    
+    """ for root, dirs, files in os.walk(baseDir):
         for file in files:
             if file == 'index.html':
-                directory.append(os.path.join(subdir, file))
+                directory.append(os.path.join(root, file)) """
+    for entry in os.listdir(baseDir):
+        path = os.path.join(baseDir, entry)
+        if os.path.isdir(path):
+            get_dirs(path)
+        else:
+            if entry == 'index.html':
+                directory.append(path)
     
-    return directory    
+    #return directory
 
 def cleaner(container, string):
     words = []
@@ -337,14 +348,14 @@ def get_data(dirs):
     for i in range(len(art_id)):
         dic[art_id[i]] = temp3[i]
         
-def main(rootdir):
+def main(baseDir):
 #    print(links)
     
-    dirs = get_dirs(rootdir)
-    get_data(dirs)
+    get_dirs(baseDir)
+    get_data(directory)
     
-    print('Insertnig to News, Media ....')
-    logger.info('Insertnig to News, Media ....')
+    print('Inserting to News, Media ....')
+    logger.info('Inserting to News, Media ....')
     for i in range(len(art_titles)):
         c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content, Raw, Category) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i]), art_raw[i], art_category_id[i]))
         c.execute("insert or ignore into media (News_ID, location, type) values (?,?,?)", (art_id[i], art_media[i], art_media_type[i]))
@@ -352,8 +363,8 @@ def main(rootdir):
     logger.info('Finished inserting news, media')
     print('Finished inserting news, media')
 
-    print('Insertnig to Dictionary ....')
-    logger.info('Insertnig to Dictionary ....')
+    print('Inserting to Dictionary ....')
+    logger.info('Inserting to Dictionary ....')
     for i in range(len(word)):
         c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
         conn.commit()
@@ -368,8 +379,8 @@ def main(rootdir):
         ids.append(i[0])   
         name.append(i[1])
     
-    print('Insertnig to word_count ....')
-    logger.info('Insertnig to word_count ....')
+    print('Inserting to word_count ....')
+    logger.info('Inserting to word_count ....')
     for key, value in dic.items():
         a = key
         b = value
@@ -379,8 +390,8 @@ def main(rootdir):
                     key = ids[i]
             c.execute('insert or ignore into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
-    print('Finished Insertnig to word_count')
-    logger.info('Finished Insertnig to word_count')
+    print('Finished Inserting to word_count')
+    logger.info('Finished Inserting to word_count')
 
     b = c.execute('select word_id, sum(count) from word_count group by word_id')
     ids = []
@@ -396,10 +407,10 @@ def main(rootdir):
         conn.commit()
         
     conn.close()
-    logger.info(f'Finished Insertnig Artikel {art_date_full[0]}, version {art_ver[0]}')
+    logger.info(f'Finished Inserting Artikel {art_date_full[0]}, version {art_ver[0]}')
     main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
 
 
 
 if __name__ == '__main__':    
-    main(rootdir)
+    main(baseDir)
