@@ -438,7 +438,7 @@ def main(url):
             for i in range(len(name)):
                 if key == name[i]:
                     key = ids[i]
-            c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
+            c.execute('insert or ignore into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
     print('Finished Insertnig to Word_count')
     logger.info('Finished Insertnig to Word_count')
@@ -463,7 +463,7 @@ def main(url):
 
 
 if __name__ == '__main__':    
-    main('https://www.nikkei.com/paper/evening/?b=20190831&d=0')
+    main('https://www.nikkei.com/paper/morning/?b=20190831&d=0')
 
 
 

@@ -307,7 +307,7 @@ def main(baseDir):
             for i in range(len(name)):
                 if key == name[i]:
                     key = ids[i]
-            c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
+            c.execute('insert into or ignore word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
     print('Finished Inserting into word_count')
     logger.info('Finished Inserting into word_count')
