@@ -89,7 +89,7 @@ row=dict()
 def get_link(url):
     
     driver.get(url)
-    time.sleep(10)
+    time.sleep(15)
     try:
         username = driver.find_element_by_name("LA7010Form01:LA7010Email")
     except:
@@ -463,7 +463,7 @@ def main(url):
 
 
 if __name__ == '__main__':    
-    main('https://www.nikkei.com/paper/morning/?b=20190831&d=0')
+    main('https://www.nikkei.com/paper/evening/?b=20190831&d=0')
 
 
 
