@@ -98,23 +98,23 @@ paper_version = {'M': 'morning', 'E': 'evening'}
 def get_link(url):
     
     driver.get(url)
-    time.sleep(15)
+    time.sleep(10)
     try:
         username = driver.find_element_by_name("LA7010Form01:LA7010Email")
+        username.clear()
+        username.send_keys("hmatsuhisa@aol.com")
+        
+        password = driver.find_element_by_name("LA7010Form01:LA7010Password")
+        password.clear()
+        password.send_keys("matsuhisa1380")
+        
+        
+        login_attempt = driver.find_element_by_xpath("//*[@type='submit']")
+        login_attempt.click()
     except:
-        logger.exception('FAILED Connection Too Slow')
-    username.clear()
-    username.send_keys("hmatsuhisa@aol.com")
+        pass
     
-    password = driver.find_element_by_name("LA7010Form01:LA7010Password")
-    password.clear()
-    password.send_keys("matsuhisa1380")
-    
-    
-    login_attempt = driver.find_element_by_xpath("//*[@type='submit']")
-    login_attempt.click()
-    
-    time.sleep(2)    
+    time.sleep(5)    
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
     logger.info('Login Success')
@@ -136,6 +136,7 @@ def get_link(url):
         if link2:        
             links.append(link2)
             
+    print(len(links))
     v = soup.find('div', {'class':'kn-panel cmn-clearfix'})
     try:
         b = v.findAll('li')
@@ -166,7 +167,7 @@ def get_link(url):
         evening_categories.append(row[1])
         evening_categories_id.append(row[0])
     
-    print(f' {len(links)} links captured')
+    print(f'{len(links)} links captured')
     logger.info(f' {len(links)} links captured')
     return(links)
 
@@ -476,7 +477,7 @@ def main(argv):
                 for i in range(len(name)):
                     if key == name[i]:
                         key = ids[i]
-                c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
+                c.execute('insert or ignore into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
                 conn.commit()
         print('Finished Insertnig to Word_count')
         logger.info('Finished Insertnig to Word_count')
@@ -494,45 +495,10 @@ def main(argv):
         for i in range(len(ids)):
             c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
             conn.commit()
-        conn.close()
+        
         print('Finished Updating Count Total')
         logger.info('Finished Updating Count Total')
         main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
-
-
-if __name__ == '__main__':    
-    main('https://www.nikkei.com/paper/evening/?b=20190831&d=0')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
