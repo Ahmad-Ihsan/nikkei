@@ -449,10 +449,12 @@ def main(argv):
         logger.info('Finished Insertnig to News, Media ....')
         print('Finished Insertnig to News, Media')
 
+
         print('Insertnig to Dictionary ....')
         logger.info('Insertnig to Dictionary ....')
         for i in range(len(word)):
             c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
+
             conn.commit()
         logger.info('Finished Insertnig to Dictionary')
         print('Finished Insertnig to Dictionary')
@@ -464,7 +466,7 @@ def main(argv):
         for i in a:
             ids.append(i[0])   
             name.append(i[1])
-        
+
         print('Insertnig to Word_count ....')
         logger.info('Insertnig to Word_count')
         for key, value in row.items():
@@ -496,6 +498,44 @@ def main(argv):
         print('Finished Updating Count Total')
         logger.info('Finished Updating Count Total')
         main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
+
+
+if __name__ == '__main__':    
+    main('https://www.nikkei.com/paper/morning/?b=20190831&d=0')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 if __name__ == '__main__':
