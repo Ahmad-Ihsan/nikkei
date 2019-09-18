@@ -81,6 +81,7 @@ furigana = []
 word_type = []
 row=dict()
 
+directories =[]
 
 
 def doc2docx(basedir):
@@ -104,14 +105,24 @@ def cleaner(container, string):
     container.append(a[:-5])    
     
 def get_dir(baseDir):
-    directories = []
-    os.chdir(baseDir)
+    #print(baseDir)
+    #directories = []
+    ''' os.chdir(baseDir)
     a = os.listdir()
     for i in a:
         if i[-5:] == '.docx':
             if i[0:4] != '~$13': 
-                directories.append(i)
-    
+                directories.append(i) '''
+    doc2docx(baseDir)
+    for entry in os.listdir(baseDir):
+        path = os.path.join(baseDir, entry)
+        if os.path.isdir(path):
+            get_dir(path)
+        else:
+            #print(entry)
+            if entry[-5:] == '.docx':
+                if entry[0:4] != '~$13': 
+                    directories.append(path)
     return directories
     
     
