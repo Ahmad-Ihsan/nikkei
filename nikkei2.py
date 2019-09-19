@@ -21,6 +21,11 @@ from selenium.webdriver.firefox.options import Options
 import time
 import logging
 
+from sql.connect import DBConnection
+
+import sys
+import datetime
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
@@ -39,7 +44,8 @@ geckodriver = "/usr/local/bin/"
 options = Options()
 options.headless = True
 driver = webdriver.Firefox(geckodriver, options=options)
-conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
+db = DBConnection()
+conn = db.connection()
 c = conn.cursor()
 mecab = MeCab.Tagger()
 
@@ -85,25 +91,28 @@ furigana = []
 word_type = []
 row=dict()
 
+baseURL = 'https://www.nikkei.com/paper/'
+
+paper_version = {'M': 'morning', 'E': 'evening'}
 
 def get_link(url):
     
     driver.get(url)
-    time.sleep(10)
+    time.sleep(3)
     try:
         username = driver.find_element_by_name("LA7010Form01:LA7010Email")
+        username.clear()
+        username.send_keys("hmatsuhisa@aol.com")
+        
+        password = driver.find_element_by_name("LA7010Form01:LA7010Password")
+        password.clear()
+        password.send_keys("matsuhisa1380")
+        
+        
+        login_attempt = driver.find_element_by_xpath("//*[@type='submit']")
+        login_attempt.click()
     except:
-        logger.exception('FAILED Connection Too Slow')
-    username.clear()
-    username.send_keys("hmatsuhisa@aol.com")
-    
-    password = driver.find_element_by_name("LA7010Form01:LA7010Password")
-    password.clear()
-    password.send_keys("matsuhisa1380")
-    
-    
-    login_attempt = driver.find_element_by_xpath("//*[@type='submit']")
-    login_attempt.click()
+        pass
     
     time.sleep(2)    
     html = driver.page_source
@@ -398,104 +407,105 @@ def get_data(links):
     
 ######################################################################################################        
     
-def main(url):
-    links = get_link(url)
-#    print(links)
-    get_data(links)
-    
-
-    print('Insertnig to News, Media ....')
-    logger.info('Insertnig to News, Media ....')
-    for i in range(len(art_titles)):
-        c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content, Raw, Category) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i]), art_raw[i], art_category_id[i]))
-        c.execute("insert or ignore into media (News_ID, location, type) values (?,?,?)", (art_id[i], art_media[i], art_media_type[i]))
-        conn.commit()
-    logger.info('Finished Insertnig to News, Media ....')
-    print('Finished Insertnig to News, Media')
-
-    print('Insertnig to Dictionary ....')
-    logger.info('Insertnig to Dictionary ....')
-    for i in range(len(word)):
-        c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
-        conn.commit()
-    logger.info('Finished Insertnig to Dictionary')
-    print('Finished Insertnig to Dictionary')
-
-    a = c.execute('select word_id, japanese from dictionary')    
-
-    name = []
-    ids = []
-    for i in a:
-        ids.append(i[0])   
-        name.append(i[1])
-    
-    print('Insertnig to Word_count ....')
-    logger.info('Insertnig to Word_count')
-    for key, value in row.items():
-        a = key
-        b = value
-        for key, value in b.items():
-            for i in range(len(name)):
-                if key == name[i]:
-                    key = ids[i]
-            c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
-            conn.commit()
-    print('Finished Insertnig to Word_count')
-    logger.info('Finished Insertnig to Word_count')
-
-
-    b = c.execute('select word_id, sum(count) from word_count group by word_id')
-    ids = []
-    count = []
-    for i in b:
-        ids.append(i[0])
-        count.append(i[1])
+def main(argv):
+    today = datetime.date.today()
+    print((today - datetime.timedelta(days=30)).strftime("%Y%m%d"))
+    urls = []
+    #default
+    if len(argv) == 0:
+        yesterday = today - datetime.timedelta(days=1)
+        for code, ver in paper_version.items():
+            urls.append(baseURL + ver + '/?b=' + yesterday.strftime("%Y%m%d") + '&d=0')
+    #select date
+    elif len(argv) == 1:
+        if argv[0] >= today.strftime("%Y%m%d"):
+            print('Cannot take data other than past 29 days')
+        else:
+            for code, ver in paper_version.items():
+                urls.append(baseURL + ver + '/?b=' + argv[0] + '&d=0')
+    #select date range
+    elif len(argv) == 2:
+        if argv[1].isdigit():
+            if argv[0] >= today.strftime("%Y%m%d") or argv[0] < (today - datetime.timedelta(days=30)).strftime("%Y%m%d") or argv[1] >= today.strftime("%Y%m%d") or argv[1] < (today - datetime.timedelta(days=30)).strftime("%Y%m%d"):
+                print('Cannot take data other than past 29 days')
+            elif int(argv[0]) > int(argv[1]):
+                print('Start date bigger than End date')
+            else:
+                for news_date in range(int(argv[0]), int(argv[1])):
+                    for code, ver in paper_version.items():
+                        urls.append(baseURL + ver + '/?b=' + str(news_date) + '&d=0')
+        else:
+            if argv[0] >= today.strftime("%Y%m%d") or argv[0] < (today - datetime.timedelta(days=30)).strftime("%Y%m%d"):
+                print('Cannot take data other than past 29 days')
+            else:
+                if argv[1] == paper_version['M'] or argv[1] == paper_version['E']:
+                    urls.append(baseURL + argv[1] + '/?b=' + argv[0] + '&d=0')
+                else:
+                    print('Format is not correct')
+    else:
+        print('Format is not correct')
+    for url in urls:
+        links = get_link(url)
+    #    print(links)
+        get_data(links)
         
-    print('Updating Count Total ....')
-    logger.info('Updating Count Total')
-    for i in range(len(ids)):
-        c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
-        conn.commit()
-    conn.close()
-    print('Finished Updating Count Total')
-    logger.info('Finished Updating Count Total')
-    main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
+
+        print('Insertnig to News, Media ....')
+        logger.info('Insertnig to News, Media ....')
+        for i in range(len(art_titles)):
+            c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content, Raw, Category) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i]), art_raw[i], art_category_id[i]))
+            c.execute("insert or ignore into media (News_ID, location, type) values (?,?,?)", (art_id[i], art_media[i], art_media_type[i]))
+            conn.commit()
+        logger.info('Finished Insertnig to News, Media ....')
+        print('Finished Insertnig to News, Media')
+
+        print('Insertnig to Dictionary ....')
+        logger.info('Insertnig to Dictionary ....')
+        for i in range(len(word)):
+            c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
+            conn.commit()
+        logger.info('Finished Insertnig to Dictionary')
+        print('Finished Insertnig to Dictionary')
+
+        a = c.execute('select word_id, japanese from dictionary')    
+
+        name = []
+        ids = []
+        for i in a:
+            ids.append(i[0])   
+            name.append(i[1])
+        
+        print('Insertnig to Word_count ....')
+        logger.info('Insertnig to Word_count')
+        for key, value in row.items():
+            a = key
+            b = value
+            for key, value in b.items():
+                for i in range(len(name)):
+                    if key == name[i]:
+                        key = ids[i]
+                c.execute('insert or ignore into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
+                conn.commit()
+        print('Finished Insertnig to Word_count')
+        logger.info('Finished Insertnig to Word_count')
 
 
-if __name__ == '__main__':    
-    main('https://www.nikkei.com/paper/evening/?b=20190831&d=0')
+        b = c.execute('select word_id, sum(count) from word_count group by word_id')
+        ids = []
+        count = []
+        for i in b:
+            ids.append(i[0])
+            count.append(i[1])
+            
+        print('Updating Count Total ....')
+        logger.info('Updating Count Total')
+        for i in range(len(ids)):
+            c.execute('UPDATE dictionary SET count_total = %d where word_id = %s' %(count[i], ids[i]))
+            conn.commit()
+        
+        print('Finished Updating Count Total')
+        logger.info('Finished Updating Count Total')
+        main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+if __name__ == '__main__':
+    main(sys.argv[1:])
