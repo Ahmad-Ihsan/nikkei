@@ -136,6 +136,7 @@ def get_link(url):
         if link2:        
             links.append(link2)
             
+    print(len(links))
     v = soup.find('div', {'class':'kn-panel cmn-clearfix'})
     try:
         b = v.findAll('li')
@@ -166,7 +167,7 @@ def get_link(url):
         evening_categories.append(row[1])
         evening_categories_id.append(row[0])
     
-    print(f' {len(links)} links captured')
+    print(f'{len(links)} links captured')
     logger.info(f' {len(links)} links captured')
     return(links)
 
