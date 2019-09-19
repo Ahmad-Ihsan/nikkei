@@ -18,6 +18,8 @@ import subprocess
 import glob
 import logging
 
+from sql.connect import DBConnection
+
 logger = logging.getLogger('doc')
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter('%(levelname)s:%(message)s:%(asctime)s')
@@ -32,12 +34,13 @@ main_logger_handler = logging.FileHandler('MainLog.log')
 main_logger_handler.setFormatter(main_logger_format)
 main_logger.addHandler(main_logger_handler)
 
-
-conn = sqlite3.connect('/home/ihsan/nikkei/testdb2.db')
+db = DBConnection()
+conn = db.connection()
 c = conn.cursor()
 mecab = MeCab.Tagger()
 
-baseDir = '/home/ihsan/Nikkei/news/20130408朝刊' 
+#baseDir = '/home/ihsan/Nikkei/news/20130408朝刊' 
+baseDir = os.path.abspath(os.path.dirname(__file__))
 
 #News
 art_id = []
@@ -81,14 +84,14 @@ furigana = []
 word_type = []
 row=dict()
 
+directories = []
 
-
-def doc2docx(basedir):
-    os.chdir(basedir)
+def doc2docx(dir):
+    os.chdir(dir)
 
     for doc in glob.iglob("*.doc"):
 
-        print(doc)
+        #print(doc)
         subprocess.call(['soffice', '--headless', '--convert-to', 'docx', doc], shell = False)
 
     
@@ -104,15 +107,17 @@ def cleaner(container, string):
     container.append(a[:-5])    
     
 def get_dir(baseDir):
-    directories = []
-    os.chdir(baseDir)
-    a = os.listdir()
-    for i in a:
-        if i[-5:] == '.docx':
-            if i[0:4] != '~$13': 
-                directories.append(i)
-    
-    return directories
+    doc2docx(baseDir)
+    for entry in os.listdir(baseDir):
+        path = os.path.join(baseDir, entry)
+        if os.path.isdir(path):
+            get_dir(path)
+        else:
+            #print(entry)
+            if entry[-5:] == '.docx':
+                if entry[0:4] != '~$13': 
+                    directories.append(path)
+    #return directories
     
     
 def docParser(dirs):
@@ -206,8 +211,8 @@ def docParser(dirs):
     for i in range(len(artikel)):
         node = mecab.parse(artikel[i])
         node = node.split("\n")
-        for i in node:
-            feature = re.split('[\t,]',i)
+        for j in node:
+            feature = re.split('[\t,]',j)
             if len(feature) >= 2 and feature[1] in ('助詞', '記号'):
                 continue
             if len(feature) >= 2 and feature[2] in ('数'):
@@ -268,26 +273,30 @@ def docParser(dirs):
 
        
 def main(baseDir):
-    doc2docx(baseDir)
-    dirs = get_dir(baseDir)
-    docParser(dirs)
+    #doc2docx(baseDir)
+    #dirs = get_dir(baseDir)
+    #docParser(dirs)
+    get_dir(baseDir)
+    docParser(directories)
     
-    print('Insertnig to News, Media ....')
-    logger.info('Insertnig to News, Media ....')
+    #print(directories)
+    
+    print('Inserting to News, Media ....')
+    logger.info('Inserting to News, Media ....')
     for i in range(len(art_titles)):
         c.execute("insert or ignore into news (News_ID, Date_Full, Year, Month, Date, Day, Version, Title, Subtitle, Text_Content) values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (art_id[i], art_date_full[i], int(art_year[i]), int(art_month[i]), int(art_date[i]), int(art_day[i]), art_ver[i], art_titles[i], art_subtitles[i], str(art_content[i])))
         c.execute("insert or ignore into media (News_ID, type) values (?,?)", (art_id[i], art_media_type))
         conn.commit()
-    logger.info('Finished Insertnig to News, Media ....')
-    print('Finished Insertnig to News, Media')    
+    logger.info('Finished Inserting to News, Media ....')
+    print('Finished Inserting to News, Media')    
 
-    print('Insertnig to Dictionary ....')
-    logger.info('Insertnig to Dictionary ....')
+    print('Inserting to Dictionary ....')
+    logger.info('Inserting to Dictionary ....')
     for i in range(len(japanese)):
         c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (japanese[i], furigana[i], word_type[i]))
         conn.commit()
-    print('Finished Insertnig to Dictionary')
-    logger.info('Finished Insertnig to Dictionary')
+    print('Finished Inserting to Dictionary')
+    logger.info('Finished Inserting to Dictionary')
 
     a = c.execute('select word_id, japanese from dictionary')    
 
@@ -307,7 +316,7 @@ def main(baseDir):
             for i in range(len(name)):
                 if key == name[i]:
                     key = ids[i]
-            c.execute('insert into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
+            c.execute('insert or ignore into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
             conn.commit()
     print('Finished Inserting into word_count')
     logger.info('Finished Inserting into word_count')
@@ -332,7 +341,7 @@ def main(baseDir):
     main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
 
     print('removing duplicates')    
-    for i in dirs:
+    for i in directories:
         os.remove(i)
         
         
