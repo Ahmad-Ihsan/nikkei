@@ -521,7 +521,9 @@ def main(argv):
         
         print('Finished Updating Count Total')
         logger.info('Finished Updating Count Total')
-        main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
+        # main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
 
+        conn.close()
+        
 if __name__ == '__main__':
     main(sys.argv[1:])
