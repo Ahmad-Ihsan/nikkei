@@ -84,9 +84,7 @@ furigana = []
 word_type = []
 row=dict()
 
-
-directories =[]
-
+directories = []
 
 def doc2docx(dir):
     os.chdir(dir)
@@ -109,16 +107,6 @@ def cleaner(container, string):
     container.append(a[:-5])    
     
 def get_dir(baseDir):
-
-    #print(baseDir)
-    #directories = []
-    ''' os.chdir(baseDir)
-    a = os.listdir()
-    for i in a:
-        if i[-5:] == '.docx':
-            if i[0:4] != '~$13': 
-                directories.append(i) '''
-
     doc2docx(baseDir)
     for entry in os.listdir(baseDir):
         path = os.path.join(baseDir, entry)
@@ -129,9 +117,7 @@ def get_dir(baseDir):
             if entry[-5:] == '.docx':
                 if entry[0:4] != '~$13': 
                     directories.append(path)
-
     #return directories
-
     
     
 def docParser(dirs):
@@ -330,9 +316,7 @@ def main(baseDir):
             for i in range(len(name)):
                 if key == name[i]:
                     key = ids[i]
-
             c.execute('insert or ignore into word_count(word_id, news_id, count) values (?,?,?)', (key, a, value))
-
             conn.commit()
     print('Finished Inserting into word_count')
     logger.info('Finished Inserting into word_count')

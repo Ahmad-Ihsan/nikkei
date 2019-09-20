@@ -99,7 +99,7 @@ paper_version = {'M': 'morning', 'E': 'evening'}
 def get_link(url):
     
     driver.get(url)
-    time.sleep(15)
+    time.sleep(3)
     try:
         username = driver.find_element_by_name("LA7010Form01:LA7010Email")
         username.clear()
@@ -115,7 +115,7 @@ def get_link(url):
     except:
         pass
     
-    time.sleep(10)    
+    time.sleep(2)    
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
     logger.info('Login Success')
@@ -419,16 +419,17 @@ def get_data(links):
 ######################################################################################################        
     
 def main(argv):
-    today = int(datetime.datetime.now().strftime("%Y%m%d"))
+    today = datetime.date.today()
+    print((today - datetime.timedelta(days=30)).strftime("%Y%m%d"))
     urls = []
     #default
     if len(argv) == 0:
-        yesterday = today - 1
+        yesterday = today - datetime.timedelta(days=1)
         for code, ver in paper_version.items():
-            urls.append(baseURL + ver + '/?b=' + str(yesterday) + '&d=0')
+            urls.append(baseURL + ver + '/?b=' + yesterday.strftime("%Y%m%d") + '&d=0')
     #select date
     elif len(argv) == 1:
-        if int(argv[0]) >= today:
+        if argv[0] >= today.strftime("%Y%m%d"):
             print('Cannot take data other than past 29 days')
         else:
             for code, ver in paper_version.items():
@@ -474,12 +475,10 @@ def main(argv):
         logger.info('Finished Insertnig to News, Media ....')
         print('Finished Insertnig to News, Media')
 
-
         print('Insertnig to Dictionary ....')
         logger.info('Insertnig to Dictionary ....')
         for i in range(len(word)):
             c.execute("insert or ignore into dictionary (japanese, furigana, word_type) values (?,?,?)", (word[i], furigana[i], word_type[i]))
-
             conn.commit()
         logger.info('Finished Insertnig to Dictionary')
         print('Finished Insertnig to Dictionary')
@@ -491,7 +490,7 @@ def main(argv):
         for i in a:
             ids.append(i[0])   
             name.append(i[1])
-
+        
         print('Insertnig to Word_count ....')
         logger.info('Insertnig to Word_count')
         for key, value in row.items():
@@ -523,9 +522,6 @@ def main(argv):
         print('Finished Updating Count Total')
         logger.info('Finished Updating Count Total')
         main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
-
-
-
 
 if __name__ == '__main__':
     main(sys.argv[1:])
