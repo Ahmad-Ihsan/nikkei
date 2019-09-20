@@ -43,7 +43,7 @@ main_logger.addHandler(main_logger_handler)
 geckodriver = "/usr/local/bin/"
 options = Options()
 options.headless = True
-driver = webdriver.Firefox(geckodriver, options=options)
+driver = webdriver.Firefox(geckodriver)
 db = DBConnection()
 conn = db.connection()
 c = conn.cursor()
@@ -185,12 +185,12 @@ def cleaner(container, string):
     
 
 def logout():
-    dropdown = driver.find_element_by_class_name('l-miH02_H02c_user_name')
-    dropdown.click()                            
-
+    dropdown = driver.find_element_by_xpath('/html/body/div[2]/div/div/div[4]/div/a/span[1]')
+    dropdown.click()
+    
     logout = driver.find_element_by_class_name('l-miH02_H02c_userMenu_logout')
     logout.click()
-
+    
     print('logged out')
     
     
