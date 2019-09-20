@@ -72,7 +72,8 @@ morning_categories = []
 morning_categories_id = []
 evening_categories = []
 evening_categories_id = []
-new_category = []
+new_category_m= []
+new_category_e= []
 cat_ver = []
 
 #Days
@@ -98,7 +99,7 @@ paper_version = {'M': 'morning', 'E': 'evening'}
 def get_link(url):
     
     driver.get(url)
-    time.sleep(10)
+    time.sleep(15)
     try:
         username = driver.find_element_by_name("LA7010Form01:LA7010Email")
         username.clear()
@@ -114,7 +115,7 @@ def get_link(url):
     except:
         pass
     
-    time.sleep(5)    
+    time.sleep(10)    
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
     logger.info('Login Success')
@@ -138,24 +139,24 @@ def get_link(url):
             
     print(len(links))
     v = soup.find('div', {'class':'kn-panel cmn-clearfix'})
-    try:
-        b = v.findAll('li')
-    except:
-        logger.exception('Failed Connection Too Slow')
-    for i in range(len(b)):
-        category = b[i].a.text
-        new_category.append(category)
+    b = v.findAll('li')
         
     if soup.find('li', {'class': re.compile('knc-here')})['class'][0].split('-')[1] == 'morning':
         ver = 'M'
-        cat_ver.append(ver)
+        for i in range(len(b)):
+            category = b[i].a.text
+            new_category_m.append(category)
+        for i in range(len(new_category_m)):
+            c.execute('insert or ignore into categories (category_name, version) values (?, ?)', (new_category_m[i], ver))
+            conn.commit()
     elif soup.find('li', {'class': re.compile('knc-here')})['class'][0].split('-')[1] == 'evening':
         ver = 'E'
-        cat_ver.append(ver)
-    
-    for i in range(len(new_category)):
-        c.execute('insert or ignore into categories (category_name, version) values (?, ?)', (new_category[i], cat_ver[0]))
-        conn.commit()
+        for i in range(len(b)):
+            category = b[i].a.text
+            new_category_e.append(category)
+        for i in range(len(new_category_e)):
+            c.execute('insert or ignore into categories (category_name, version) values (?, ?)', (new_category_e[i], ver))
+            conn.commit()
         
     catM = c.execute('select * from categories where version = "M"')
     for row in catM:
@@ -182,6 +183,15 @@ def cleaner(container, string):
     a = ' '.join(words)    
     container.append(a[:-5])
     
+
+def logout():
+    dropdown = driver.find_element_by_class_name('l-miH02_H02c_user_name')
+    dropdown.click()                            
+
+    logout = driver.find_element_by_class_name('l-miH02_H02c_userMenu_logout')
+    logout.click()
+
+    print('logged out')
     
     
 def get_data(links):    
@@ -425,21 +435,35 @@ def main(argv):
                 urls.append(baseURL + ver + '/?b=' + argv[0] + '&d=0')
     #select date range
     elif len(argv) == 2:
-        if int(argv[0]) >= today or int(argv[0]) < today-30 or int(argv[1]) >= today or int(argv[1]) < today-30:
-            print('Cannot take data other than past 29 days')
-        elif int(argv[0]) > int(argv[1]):
-            print('Start date bigger than End date')
+        if argv[1].isdigit():
+            if argv[0] >= today.strftime("%Y%m%d") or argv[0] < (today - datetime.timedelta(days=30)).strftime("%Y%m%d") or argv[1] >= today.strftime("%Y%m%d") or argv[1] < (today - datetime.timedelta(days=30)).strftime("%Y%m%d"):
+                print('Cannot take data other than past 29 days')
+            elif int(argv[0]) > int(argv[1]):
+                print('Start date bigger than End date')
+            else:
+                for news_date in range(int(argv[0]), int(argv[1])):
+                    for code, ver in paper_version.items():
+                        urls.append(baseURL + ver + '/?b=' + str(news_date) + '&d=0')
         else:
-            for news_date in range(int(argv[0]), int(argv[1])):
-                for code, ver in paper_version.items():
-                    urls.append(baseURL + ver + '/?b=' + str(news_date) + '&d=0')
+            if argv[0] >= today.strftime("%Y%m%d") or argv[0] < (today - datetime.timedelta(days=30)).strftime("%Y%m%d"):
+                print('Cannot take data other than past 29 days')
+            else:
+                if argv[1] == paper_version['M'] or argv[1] == paper_version['E']:
+                    urls.append(baseURL + argv[1] + '/?b=' + argv[0] + '&d=0')
+                else:
+                    print('Format is not correct')
     else:
         print('Format is not correct')
-    for url in urls:
-        links = get_link(url)
-    #    print(links)
+
+    for i in range(len(urls)):
+        links = get_link(urls[i])
+        # print(links)
         get_data(links)
         
+        if urls[i] != urls[-1]:
+            continue
+        else:
+            logout()
 
         print('Insertnig to News, Media ....')
         logger.info('Insertnig to News, Media ....')
@@ -499,7 +523,6 @@ def main(argv):
         print('Finished Updating Count Total')
         logger.info('Finished Updating Count Total')
         main_logger.warning(f'Articles from {art_date_full[0]} version {art_ver[0]} has been added to database @ ')
-
 
 
 
